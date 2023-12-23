@@ -48,6 +48,7 @@ import { ISpaceItem } from '../../../types';
 import AlarmGroupDetail from '../../alarm-group/alarm-group-detail/alarm-group-detail';
 import CommonNavBar from '../../monitor-k8s/components/common-nav-bar';
 import { handleSetTargetDesc } from '../common';
+import { invalidTypeMap } from '../store';
 import StrategyTemplatePreview from '../strategy-config-set/strategy-template-preview/strategy-template-preview.vue';
 import StrategyVariateList from '../strategy-config-set/strategy-variate-list/strategy-variate-list.vue';
 import StrategyView from '../strategy-config-set/strategy-view/strategy-view';
@@ -918,6 +919,73 @@ export default class StrategyConfigDetailCommon extends tsc<{}> {
     this.localAiopsChartType = type;
   }
 
+  /* 跳转到事件中心 */
+  handleToEventCenter(type = 'NOT_SHIELDED_ABNORMAL') {
+    const url = `${location.origin}${location.pathname}${location.search}#/event-center?queryString=${
+      ['zh', 'zhCN', 'zh-cn'].includes(window.i18n.locale) ? `策略ID : ${item.id}` : `strategy_id : ${item.id}`
+    }&activeFilterId=${type}&from=now-30d&to=now`;
+    window.open(url);
+  }
+  /* 跳转到屏蔽页 */
+  handleToAlarmShield(ids: number[]) {
+    const queryString = encodeURIComponent(JSON.stringify([{ key: 'id', value: ids }]));
+    window.open(`${location.origin}${location.pathname}${location.search}#/alarm-shield?queryString=${queryString}`);
+  }
+
+  renderNavBarStatus() {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { is_invalid = false, alert_count = 0, shield_alert_count = 0 } = this.detailData;
+    return [
+      is_invalid ? (
+        <div class='nav-bar-status'>
+          <i
+            v-bk-tooltips={{
+              placements: ['right'],
+              boundary: 'window',
+              content: `${invalidTypeMap[this.detailData.invalidType]}`
+            }}
+            class='icon-monitor icon-shixiao'
+          ></i>
+          <span class='status-label'>{this.$t('策略已失效')}</span>
+        </div>
+      ) : undefined,
+      shield_alert_count ? (
+        <div class='nav-bar-status'>
+          <span
+            class='alert-tag grey'
+            v-bk-tooltips={{
+              placements: ['right'],
+              boundary: 'window',
+              content: `${this.$t('当前有{n}个已屏蔽事件', { n: shield_alert_count })}`
+            }}
+            onClick={() => this.handleToEventCenter('SHIELDED_ABNORMAL')}
+          >
+            <i class='icon-monitor icon-menu-shield'></i>
+            <span class='alert-count'>{shield_alert_count}</span>
+          </span>
+          <span class='status-label'>{this.$t('策略已屏蔽')}</span>
+        </div>
+      ) : undefined,
+      alert_count && !is_invalid ? (
+        <div class='nav-bar-status'>
+          <span
+            class='alert-tag red'
+            v-bk-tooltips={{
+              placements: ['right'],
+              boundary: 'window',
+              content: `${this.$t('当前有{n}个未恢复事件', { n: alert_count })}`
+            }}
+            onClick={() => this.handleToEventCenter()}
+          >
+            <i class='icon-monitor icon-mc-chart-alert'></i>
+            <span class='alert-count'>{alert_count}</span>
+          </span>
+          <span class='status-label'>{this.$t('告警中')}</span>
+        </div>
+      ) : undefined
+    ];
+  }
+
   render() {
     const panelItem = (title: string, content: any, style = {}, titleRight?: any) => (
       <div
@@ -977,7 +1045,13 @@ export default class StrategyConfigDetailCommon extends tsc<{}> {
           position-text={this.navName}
           navMode='copy'
         >
-          <span slot='custom'>{this.$t('策略详情')}</span>
+          <div
+            class='strategy-detail-nav-name-wrap'
+            slot='custom'
+          >
+            <span class='strategy-detail-name'>{this.$t('策略详情')}</span>
+            {this.renderNavBarStatus()}
+          </div>
           <span
             slot='append'
             class={['icon-monitor icon-audit', { active: this.strategyView.show }]}
