@@ -327,7 +327,7 @@ export default class MonitorEcharts extends Vue {
       return window.graph_watermark ? `url('${watermarkMaker(window.user_name || window.username)}')` : '';
     }
   })
-    backgroundUrl: String;
+  backgroundUrl: String;
 
   // 获取图标数据
   @Prop() getSeriesData: (timeFrom?: string, timeTo?: string, range?: boolean) => Promise<any[]>;
@@ -338,14 +338,14 @@ export default class MonitorEcharts extends Vue {
     default: () => colorList
   })
   // 图标系列颜色集合
-    colors: string[];
+  colors: string[];
 
   @Prop({
     default() {
-      return this.$t('查无数据');
+      return this.$t('暂无数据');
     }
   })
-    emptyText: string;
+  emptyText: string;
 
   /* line chart 是否包含trace信息散点图 */
   @Prop({ type: Boolean, default: false }) hasTraceInfo: boolean;
@@ -441,7 +441,7 @@ export default class MonitorEcharts extends Vue {
             type: 'cross',
             label: {
               show: false,
-              formatter: (params) => {
+              formatter: params => {
                 if (this.chartType !== 'line') return;
                 if (params.axisDimension === 'y') {
                   this.curValue.yAxis = params.value;
@@ -538,7 +538,7 @@ export default class MonitorEcharts extends Vue {
   get tableData() {
     /** { time: 各个图表在同一时间点的值 } */
     const data: { [key: string]: { [key: string]: number } } = this.seriesData.reduce((pre, cur) => {
-      cur.datapoints.forEach((item) => {
+      cur.datapoints.forEach(item => {
         pre[item[1]] = { ...pre[item[1]], [cur.key]: item[0] };
       });
       return pre;
@@ -692,8 +692,8 @@ export default class MonitorEcharts extends Vue {
   }
   // 注册Intersection监听
   registerObserver(): void {
-    this.intersectionObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
+    this.intersectionObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
         if (this.needObserver) {
           if (entry.intersectionRatio > 0) {
             this.handleSeriesData();
@@ -720,7 +720,7 @@ export default class MonitorEcharts extends Vue {
     this.needObserver = false;
     try {
       const isRange = startTime && startTime.length > 0 && endTime && endTime.length > 0;
-      const data = await this.getSeriesData(startTime, endTime, isRange).catch((e) => {
+      const data = await this.getSeriesData(startTime, endTime, isRange).catch(e => {
         console.info(e);
         return [];
       });
@@ -764,14 +764,15 @@ export default class MonitorEcharts extends Vue {
   }
   // 设置chart配置
   async handleSetChartData(data) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!this.chart) {
         this.initChart();
       }
       if (this.isEchartsRender) {
         const series: any = deepMerge([], data || []);
-        const hasSeries =          (series && series.length > 0 && series.some(item => item?.datapoints?.length))
-          || (series && Object.prototype.hasOwnProperty.call(series, 'series') && series.series.length);
+        const hasSeries =
+          (series && series.length > 0 && series.some(item => item?.datapoints?.length)) ||
+          (series && Object.prototype.hasOwnProperty.call(series, 'series') && series.series.length);
         if (!hasSeries) {
           this.noData = !hasSeries;
           resolve(undefined);
@@ -839,7 +840,7 @@ export default class MonitorEcharts extends Vue {
               this.hasInitChart = true;
               if (optionData.options.toolbox) {
                 this.initChartAction();
-                this.chart.on('dataZoom', async (event) => {
+                this.chart.on('dataZoom', async event => {
                   if (this.showTitleTool) {
                     this.loading = true;
                     const [batch] = event.batch;
@@ -906,8 +907,8 @@ export default class MonitorEcharts extends Vue {
   handleSetTooltip(params) {
     if (!this.showTitleTool) return undefined;
     if (!params || params.length < 1 || params.every(item => item.value[1] === null)) {
-      this.chartType === 'line'
-        && (this.curValue = {
+      this.chartType === 'line' &&
+        (this.curValue = {
           color: '',
           name: '',
           seriesIndex: -1,
@@ -925,12 +926,12 @@ export default class MonitorEcharts extends Vue {
     const liHtmls = list
       .slice(0, 50)
       .sort((a, b) => b.value[1] - a.value[1])
-      .map((item) => {
+      .map(item => {
         let markColor = 'color: #fafbfd;';
         if (data[0].value === item.value[1]) {
           markColor = 'color: #ffffff;font-weight: bold;';
-          this.chartType === 'line'
-            && (this.curValue = {
+          this.chartType === 'line' &&
+            (this.curValue = {
               color: item.color,
               name: item.seriesName,
               seriesIndex: item.seriesIndex,
@@ -986,8 +987,8 @@ export default class MonitorEcharts extends Vue {
       this.chart.dispatchAction({
         type: 'restore'
       });
-      this.getSeriesData
-        && setTimeout(() => {
+      this.getSeriesData &&
+        setTimeout(() => {
           this.handleSeriesData();
         }, 100);
     }
@@ -1118,9 +1119,9 @@ export default class MonitorEcharts extends Vue {
       const csvList = [];
       const keys = Object.keys(this.tableData[0]).filter(key => !['$index'].includes(key));
       csvList.push(keys.map(key => key.replace(/,/gim, '_')).join(','));
-      this.tableData.forEach((item) => {
+      this.tableData.forEach(item => {
         const list = [];
-        keys.forEach((key) => {
+        keys.forEach(key => {
           list.push(item[key]);
         });
         csvList.push(list.join(','));
@@ -1136,7 +1137,9 @@ export default class MonitorEcharts extends Vue {
         break;
       case 1:
         // eslint-disable-next-line vue/max-len
-        window.open(location.href.replace(location.hash, `#/strategy-config?metricId=${this.extendMetricData.metric_id}`));
+        window.open(
+          location.href.replace(location.hash, `#/strategy-config?metricId=${this.extendMetricData.metric_id}`)
+        );
         break;
       case 2:
         // eslint-disable-next-line vue/max-len
@@ -1196,12 +1199,12 @@ export default class MonitorEcharts extends Vue {
       const hasOtherShow = this.legend.list
         .filter(item => !item.hidden)
         .some(set => set.name !== item.name && set.show);
-      this.legend.list.forEach((legend) => {
+      this.legend.list.forEach(legend => {
         this.chart.dispatchAction({
           type:
-            legend.name === item.name
-            || !hasOtherShow
-            || (legend.name.includes(`${item.name}-no-tips`) && legend.hidden)
+            legend.name === item.name ||
+            !hasOtherShow ||
+            (legend.name.includes(`${item.name}-no-tips`) && legend.hidden)
               ? 'legendSelect'
               : 'legendUnSelect',
           name: legend.name
@@ -1234,7 +1237,7 @@ export default class MonitorEcharts extends Vue {
         const width = cloneEl.clientWidth;
         const height = cloneEl.clientHeight;
         toPng(this.$el.querySelector('.clone-chart-wrapper')?.firstElementChild as HTMLDivElement, { width, height })
-          .then((dataUrl) => {
+          .then(dataUrl => {
             const tagA = document.createElement('a');
             tagA.download = `${this.title}.png`;
             tagA.href = dataUrl;
@@ -1248,7 +1251,7 @@ export default class MonitorEcharts extends Vue {
           });
       } else {
         toPng(this.$el as HTMLDivElement)
-          .then((dataUrl) => {
+          .then(dataUrl => {
             const tagA = document.createElement('a');
             tagA.download = `${this.title}.png`;
             tagA.href = dataUrl;
@@ -1307,7 +1310,7 @@ export default class MonitorEcharts extends Vue {
   // 初始化chart事件
   initChartEvent() {
     if (this.hasTraceInfo) {
-      this.chart.on('click', 'series.scatter', (e) => {
+      this.chart.on('click', 'series.scatter', e => {
         const chartOptions = this.chart.getOption();
         this.scatterTips.data.target.color = chartOptions.color[0];
         const labelList = ['bk_trace_id', 'bk_span_id', 'bk_trace_value'];
@@ -1339,9 +1342,9 @@ export default class MonitorEcharts extends Vue {
           this.scatterTips.top = top;
           this.scatterTips.show = true;
           const { series } = chartOptions;
-          series.forEach((item) => {
+          series.forEach(item => {
             if (item.type === 'scatter' && item.name === 'bk_trace_value') {
-              item.data.forEach((d) => {
+              item.data.forEach(d => {
                 if (JSON.stringify(d.value) === JSON.stringify(e.data.value)) {
                   d.itemStyle.color = '#699DF4';
                 }
@@ -1360,7 +1363,7 @@ export default class MonitorEcharts extends Vue {
         this.$el.querySelector('canvas').style.removeProperty('cursor');
       });
     }
-    this.chart.on('click', (e) => {
+    this.chart.on('click', e => {
       this.$emit('chart-click', e);
     });
   }
@@ -1386,9 +1389,9 @@ export default class MonitorEcharts extends Vue {
   handleScatterTipOutside() {
     this.scatterTips.show = false;
     const { series } = this.chart.getOption();
-    series.forEach((item) => {
+    series.forEach(item => {
       if (item.type === 'scatter' && item.name === 'bk_trace_value') {
-        item.data.forEach((d) => {
+        item.data.forEach(d => {
           d.itemStyle.color = '#E1ECFF';
         });
       }
@@ -1414,7 +1417,7 @@ export default class MonitorEcharts extends Vue {
         bk_biz_id: this.curBizId,
         trace_ids: [traceId],
         ...this.traceInfoTimeRange
-      }).then((data) => {
+      }).then(data => {
         const url = data?.[0]?.url || '';
         if (url) {
           window.open(`${location.origin}${url}`);
@@ -1528,7 +1531,7 @@ export default class MonitorEcharts extends Vue {
     padding: 10px 6px 6px 6px;
     background: #000;
     border-radius: 2px;
-    opacity: .8;
+    opacity: 0.8;
 
     .time {
       margin-bottom: 4px;
@@ -1612,7 +1615,7 @@ export default class MonitorEcharts extends Vue {
       width: 100%;
       content: '';
       border-top: 1px solid transparent;
-      transition: border-color .2s ease-in-out 0s;
+      transition: border-color 0.2s ease-in-out 0s;
       transform: translateY(-50%);
     }
 

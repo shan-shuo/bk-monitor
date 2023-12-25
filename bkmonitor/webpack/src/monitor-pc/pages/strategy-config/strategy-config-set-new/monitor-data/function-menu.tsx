@@ -71,8 +71,8 @@ export default class FunctionMenu extends tsc<IFunctionMenuProps, IFunctionMenuE
 
   get filterList() {
     if (!this.keyword) return this.list;
-    return this.list.filter(func =>
-      func?.children?.some(item => item.name.toLocaleLowerCase().includes(this.keyword.toLocaleLowerCase()))
+    return this.list.filter(
+      func => func?.children?.some(item => item.name.toLocaleLowerCase().includes(this.keyword.toLocaleLowerCase()))
     );
   }
   get activeFuncList() {
@@ -220,7 +220,7 @@ export default class FunctionMenu extends tsc<IFunctionMenuProps, IFunctionMenuE
                 </div>
               )}
               {(!this.filterList?.length || !this.activeFuncList?.length) && (
-                <div class='panel-desc'>{this.$t('查无数据')}</div>
+                <div class='panel-desc'>{this.$t('暂无数据')}</div>
               )}
             </div>
           </div>
