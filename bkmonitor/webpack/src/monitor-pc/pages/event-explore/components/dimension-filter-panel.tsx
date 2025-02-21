@@ -32,7 +32,7 @@ import { eventTopK } from 'monitor-api/modules/data_explorer';
 import EmptyStatus from '../../../components/empty-status/empty-status';
 
 import type { EmptyStatusType } from '../../../components/empty-status/types';
-import type { IDimensionField, IFormData } from '../typing';
+import type { IDimensionField, IFormData, ITopKField } from '../typing';
 
 import './dimension-filter-panel.scss';
 
@@ -44,6 +44,7 @@ interface DimensionFilterPanelProps {
 
 interface DimensionFilterPanelEvents {
   onClose(): void;
+  onConditionChange(val): void;
 }
 
 @Component
@@ -55,7 +56,6 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
   @Ref('dimensionPopover') dimensionPopoverRef!: HTMLDivElement;
 
   @InjectReactive('formatTimeRange') formatTimeRange;
-
   typeIconMap = {
     keyword: 'icon-string',
     text: 'icon-text',
@@ -69,21 +69,30 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
   fieldListCount = {};
 
   searchVal = '';
+  /** 搜索结果列表 */
+  searchResultList: IDimensionField[] = [];
   /** 已选择的字段 */
   activeField = '';
   popoverLoading = true;
   /** popover实例 */
   popoverInstance = null;
+  /** 统计列表 */
+  statisticsList: ITopKField[] = [];
 
   @Watch('list')
   async handleListChange() {
+    this.searchVal = '';
     this.emptyStatus = 'search-empty';
+    this.searchResultList = this.list;
+
+    const fields = this.list.reduce((pre, cur) => {
+      if (cur.is_option_enabled) pre.push(cur.name);
+      return pre;
+    }, []);
+    if (!fields.length) return;
     const list = await this.getFieldTopK({
       limit: 0,
-      fields: this.list.reduce((pre, cur) => {
-        if (cur.is_option_enabled) pre.push(cur.name);
-        return pre;
-      }, []),
+      fields,
     });
     this.fieldListCount = list.reduce((pre, cur) => {
       pre[cur.field] = cur.distinct_count;
@@ -91,11 +100,21 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
     }, {});
   }
 
-  handleSearchChange(val: string) {
+  handleSearchValChange(val: string) {
     this.searchVal = val;
-    this.emptyStatus = 'search-empty';
+    this.emptyStatus = val ? 'search-empty' : 'empty';
   }
 
+  /** 关键字搜索 */
+  handleSearch() {
+    if (!this.searchVal) {
+      this.searchResultList = this.list;
+    } else {
+      this.searchResultList = this.list.filter(item => item.name.includes(this.searchVal));
+    }
+  }
+
+  /** 维度项点击 */
   async handleDimensionItemClick(e: Event, item) {
     this.popoverLoading = true;
     this.popoverInstance?.hide(100);
@@ -122,8 +141,16 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
       limit: 5,
       fields: [item.name],
     });
-    console.log(list);
+    this.statisticsList = list;
     this.popoverLoading = false;
+  }
+
+  @Emit('conditionChange')
+  handleConditionChange(type, item: ITopKField['list'][0]) {
+    if (type === 'eq') {
+      return { condition: 'and', key: this.activeField, method: 'eq', value: [item.value] };
+    }
+    return { condition: 'and', key: this.activeField, method: 'ne', value: [item.value] };
   }
 
   getFieldTopK(params) {
@@ -177,13 +204,16 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
             v-model={this.searchVal}
             placeholder={this.$t('搜索 维度字段')}
             right-icon='bk-icon icon-search'
-            onChange={this.handleSearchChange}
+            on-right-icon-click={this.handleSearch}
+            onBlur={this.handleSearch}
+            onChange={this.handleSearchValChange}
+            onEnter={this.handleSearch}
           />
         </div>
 
-        {this.list.length ? (
+        {this.searchResultList.length ? (
           <div class='dimension-list'>
-            {this.list.map(item => (
+            {this.searchResultList.map(item => (
               <div
                 key={item.name}
                 class={{ 'dimension-item': true, active: this.activeField === item.name }}
@@ -217,7 +247,7 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
                 {this.activeField}
                 {this.$t('去重后的字段统计')}
               </div>
-              <div class='count'>12</div>
+              <div class='count'>{this.fieldListCount[this.activeField]}</div>
             </div>
             {this.popoverLoading ? (
               <div class='skeleton-wrap'>
@@ -230,28 +260,39 @@ export default class DimensionFilterPanel extends tsc<DimensionFilterPanelProps,
               </div>
             ) : (
               <div class='field-list'>
-                <div class='field-item'>
-                  <div class='filter-tools'>
-                    <i class='icon-monitor icon-a-sousuo' />
-                    <i class='icon-monitor icon-sousuo-' />
-                  </div>
-                  <div class='progress-content'>
-                    <div class='info-text'>
-                      <span class='field-name'>11.154.121.234</span>
-                      <span class='counts'>
-                        <span class='total'>13条</span>
-                        <span class='progress-count'>24%</span>
-                      </span>
+                {this.statisticsList[0].list.map(item => (
+                  <div
+                    key={item.value}
+                    class='field-item'
+                  >
+                    <div class='filter-tools'>
+                      <i
+                        class='icon-monitor icon-a-sousuo'
+                        onClick={() => this.handleConditionChange('eq', item)}
+                      />
+                      <i
+                        class='icon-monitor icon-sousuo-'
+                        onClick={() => this.handleConditionChange('ne', item)}
+                      />
                     </div>
-                    <bk-progress
-                      color='#5AB8A8'
-                      percent={0.24}
-                      show-text={false}
-                      stroke-width={6}
-                    />
+                    <div class='progress-content'>
+                      <div class='info-text'>
+                        <span class='field-name'>{item.alias}</span>
+                        <span class='counts'>
+                          <span class='total'>{this.$t('{0}条', [item.count])}</span>
+                          <span class='progress-count'>{item.proportions}%</span>
+                        </span>
+                      </div>
+                      <bk-progress
+                        color='#5AB8A8'
+                        percent={item.proportions / 100}
+                        show-text={false}
+                        stroke-width={6}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div class='load-more'>{this.$t('更多')}</div>
+                ))}
+                {this.fieldListCount[this.activeField] > 5 && <div class='load-more'>{this.$t('更多')}</div>}
               </div>
             )}
           </div>
