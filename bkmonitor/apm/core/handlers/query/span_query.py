@@ -21,8 +21,7 @@ from typing import Any
 from apm import constants, types
 from apm.core.handlers.query.base import BaseQuery
 from apm.core.handlers.query.builder import QueryConfigBuilder, UnifyQuerySet
-from apm.models import TraceDataSource
-from constants.apm import OtlpKey
+from constants.apm import OtlpKey, TraceDataSourceConfig
 
 logger = logging.getLogger("apm")
 
@@ -32,7 +31,7 @@ class SpanQuery(BaseQuery):
 
     @classmethod
     def _get_select_fields(cls, exclude_fields: list[str] | None) -> list[str]:
-        all_fields: set[str] = {field_info["field_name"] for field_info in TraceDataSource.TRACE_FIELD_LIST}
+        all_fields: set[str] = {field_info["field_name"] for field_info in TraceDataSourceConfig.TRACE_FIELD_LIST}
         # TraceDataSource.TRACE_FIELD_LIST 定义中缺失 time 字段的定义， time 属于平台内置字段，这里查询需要补充上
         all_fields.add("time")
         select_fields: list[str] = list(all_fields - set(exclude_fields or ["attributes", "links", "events"]))
@@ -51,11 +50,9 @@ class SpanQuery(BaseQuery):
     ) -> tuple[list[dict[str, Any]], int]:
         select_fields: list[str] = self._get_select_fields(exclude_fields)
         queryset: UnifyQuerySet = self.time_range_queryset(start_time, end_time)
-        q: QueryConfigBuilder = self.q.filter(self._build_filters(filters)).order_by(
+        q: QueryConfigBuilder = self.build_query_q(filters, query_string).order_by(
             *(sort or [f"{self.DEFAULT_TIME_FIELD} desc"])
         )
-        if query_string:
-            q = q.query_string(query_string)
 
         page_data: types.Page = self._get_data_page(q, queryset, select_fields, OtlpKey.SPAN_ID, offset, limit)
         return page_data["data"], page_data["total"]
@@ -85,7 +82,7 @@ class SpanQuery(BaseQuery):
         filters: list[types.Filter] | None = None,
         query_string: str | None = None,
     ):
-        return self._query_field_topk(start_time, end_time, field, limit, filters, query_string)
+        return self._query_field_topk(self.build_query_q(filters, query_string), start_time, end_time, field, limit)
 
     def query_total(
         self,
@@ -94,7 +91,7 @@ class SpanQuery(BaseQuery):
         filters: list[types.Filter] | None = None,
         query_string: str | None = None,
     ):
-        return self._query_total(start_time, end_time, filters, query_string)
+        return self._query_total(self.build_query_q(filters, query_string), start_time, end_time)
 
     def query_field_aggregated_value(
         self,
@@ -105,8 +102,9 @@ class SpanQuery(BaseQuery):
         filters: list[types.Filter] | None = None,
         query_string: str | None = None,
     ):
-        q: QueryConfigBuilder = self.get_q_from_filters_and_query_string(filters, query_string)
-        return self._query_field_aggregated_value(start_time, end_time, field, method, q)
+        return self._query_field_aggregated_value(
+            self.build_query_q(filters, query_string), start_time, end_time, field, method
+        )
 
     def query_option_values(
         self,

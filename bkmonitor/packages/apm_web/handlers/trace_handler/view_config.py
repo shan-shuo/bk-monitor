@@ -20,12 +20,12 @@ import copy
 from django.utils.functional import cached_property
 
 from apm.constants import KindCategory
-from apm.core.discover.precalculation.storage import PrecalculateStorage
 from apm_web.constants import CategoryEnum, QueryMode, SPAN_SORTED_FIELD
 from apm_web.handlers.es_handler import ESMappingHandler
+from apm_web.handlers.trace_handler.query import TraceQueryTransformer
 from apm_web.trace.constants import OPERATORS, TRACE_FIELD_ALIAS
 from bkmonitor.utils.request import get_request_username
-from constants.apm import PreCalculateSpecificField, SpanStandardField
+from constants.apm import PreCalculateSpecificField, SpanStandardField, PrecalculateStorageConfig
 from core.drf_resource import api
 from packages.apm_web.trace.constants import EnabledStatisticsDimension
 
@@ -80,7 +80,7 @@ class TraceFieldsInfoHandler:
 
         # 预计算的所有字段信息
         pre_storage_dict = {}
-        for field_info in PrecalculateStorage.TABLE_SCHEMA:
+        for field_info in PrecalculateStorageConfig.TABLE_SCHEMA:
             pre_storage_dict[field_info["field_name"]] = dict(type=field_info.get("option", {}).get("es_type", ""))
 
         # 返回 search_fields 中的字段信息
@@ -105,7 +105,9 @@ class TraceFieldsInfoHandler:
         standard_fields_info = {}
         for field_name in field_names:
             if field_name in self.es_mapping_fields_info:
-                standard_fields_info.setdefault(field_name, {}).update(self.es_mapping_fields_info[field_name])
+                standard_fields_info.setdefault(TraceQueryTransformer.to_pre_cal_field(field_name), {}).update(
+                    self.es_mapping_fields_info[field_name]
+                )
         return standard_fields_info
 
     def get_fields_info_by_mode(self, mode: QueryMode) -> dict[str, dict]:
@@ -163,7 +165,7 @@ class TraceFieldsHandler:
 
     def get_field_alias(self, field_name: str) -> str:
         """获取字段别名"""
-
+        field_name: str = TraceQueryTransformer.to_common_field(field_name)
         return TRACE_FIELD_ALIAS.get(field_name) or field_name
 
     def get_field_type(self, mode: QueryMode, field_name: str) -> str:
