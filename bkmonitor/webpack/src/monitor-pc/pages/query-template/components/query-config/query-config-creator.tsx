@@ -36,6 +36,7 @@ import MethodCreator from '../method/method-creator';
 import MetricCreator from '../metric/metric-creator';
 
 import type { AggCondition, AggFunction, MetricDetailV2, QueryConfig } from '../../typings';
+import type { FunctionVariableModel } from '../../variables';
 import type {
   IConditionOptionsItem,
   IDimensionOptionsItem,
@@ -71,7 +72,9 @@ export default class QueryConfigCreator extends tsc<IProps> {
     return this.variables.filter(item => item.type === VariableTypeEnum.GROUP_BY);
   }
   get getFunctionVariables() {
-    return this.variables.filter(item => item.type === VariableTypeEnum.FUNCTIONS);
+    return this.variables.filter(
+      item => item.type === VariableTypeEnum.FUNCTIONS && !(item as FunctionVariableModel).isUseExpression
+    );
   }
   get getConditionVariables() {
     return this.variables.filter(item => item.type === VariableTypeEnum.CONDITIONS);
@@ -114,6 +117,7 @@ export default class QueryConfigCreator extends tsc<IProps> {
       name: val,
       type: VariableTypeEnum.FUNCTIONS,
       metric: this.queryConfig.metricDetail,
+      isUseExpression: false,
     });
   }
   handleCreateConditionVariable(val) {

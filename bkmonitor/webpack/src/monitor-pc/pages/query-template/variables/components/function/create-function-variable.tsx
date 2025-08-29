@@ -75,6 +75,7 @@ class CreateFunctionVariable extends Mixins(VariableFormMixin) {
             property='defaultValue'
           >
             <FunctionCreator
+              isExpSupport={this.variable.isUseExpression}
               needClear={false}
               options={this.metricFunctions}
               showLabel={false}

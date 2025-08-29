@@ -66,6 +66,7 @@ export default class EditFunctionVariableValue extends tsc<FunctionValueProps, F
     return (
       <EditVariableValue data={this.variable.data}>
         <FunctionCreator
+          isExpSupport={this.variable.isUseExpression}
           needClear={false}
           options={this.metricFunctions}
           showLabel={false}

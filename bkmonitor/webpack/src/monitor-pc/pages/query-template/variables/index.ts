@@ -81,7 +81,7 @@ abstract class VariableBase {
     this.isValueEditable = config.isValueEditable || false;
   }
 
-  abstract get data(): Required<IVariableData>;
+  abstract get data(): IVariableData;
 
   get scopedVars(): ScopedVars {
     return {
@@ -269,10 +269,13 @@ export class DimensionVariableModel extends VariableBase {
 
 export class FunctionVariableModel extends VariableBase {
   defaultValue: AggFunction[] = [];
+  /** 表达式使用 */
+  isUseExpression = false;
   value: AggFunction[] = [];
   constructor(config: IFunctionVariableModel) {
     super(config);
     this.defaultValue = config.defaultValue || [];
+    this.isUseExpression = config.isUseExpression || false;
     if (config.value) {
       this.value = config.value;
     } else {

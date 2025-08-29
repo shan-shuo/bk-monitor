@@ -31,29 +31,33 @@ import { VariableTypeEnum } from '../../constants';
 import ExpressionCreator from '../expression/expression-creator';
 import FunctionCreator from '../function/function-creator';
 
+import type { IVariableModel } from '../../typings';
 import type { Expression } from '../../typings/expression';
 import type { AggFunction } from '../../typings/query-config';
-import type { IFunctionOptionsItem, IVariablesItem } from '../type/query-config';
+import type { FunctionVariableModel, VariableModelType } from '../../variables';
+import type { IFunctionOptionsItem } from '../type/query-config';
 
 import './expression-config-creator.scss';
 
 interface IProps {
   expressionConfig?: Expression;
   metricFunctions?: IFunctionOptionsItem[];
-  variables?: IVariablesItem[];
+  variables?: VariableModelType[];
   onChangeExpression?: (val: string) => void;
   onChangeFunction?: (val: AggFunction[]) => void;
-  onCreateVariable?: (val: IVariablesItem) => void;
+  onCreateVariable?: (val: IVariableModel) => void;
 }
 
 @Component
 export default class ExpressionConfigCreator extends tsc<IProps> {
   @Prop({ default: () => null }) expressionConfig: Expression;
   @Prop({ default: () => [] }) metricFunctions: IFunctionOptionsItem[];
-  @Prop({ default: () => [] }) variables: IVariablesItem[];
+  @Prop({ default: () => [] }) variables: VariableModelType[];
 
   get getFunctionVariables() {
-    return this.variables.filter(item => item.type === VariableTypeEnum.FUNCTIONS);
+    return this.variables.filter(
+      item => item.type === VariableTypeEnum.FUNCTIONS && (item as FunctionVariableModel).isUseExpression
+    );
   }
 
   get getExpressionVariables() {
@@ -65,6 +69,7 @@ export default class ExpressionConfigCreator extends tsc<IProps> {
       name: val,
       type: VariableTypeEnum.FUNCTIONS,
       metric: null,
+      isUseExpression: true,
     });
   }
 
@@ -101,6 +106,7 @@ export default class ExpressionConfigCreator extends tsc<IProps> {
             showVariables={true}
             value={this.expressionConfig?.functions || []}
             variables={this.getFunctionVariables}
+            isExpSupport
             onChange={this.handleFunctionChange}
             onCreateVariable={this.handleCreateFunctionVariable}
           />

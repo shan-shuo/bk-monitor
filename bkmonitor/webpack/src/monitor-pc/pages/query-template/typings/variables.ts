@@ -27,7 +27,7 @@
 import type { VariableTypeEnum } from '../constants';
 import type { GetEnumTypeTool } from './constants';
 import type { MetricDetailV2 } from './metric';
-import type { AggCondition } from './query-config';
+import type { AggCondition, AggFunction } from './query-config';
 
 export interface ICommonVariableModel<T extends VariableTypeEnumType> {
   alias?: string;
@@ -67,17 +67,19 @@ export type IDimensionVariableModel = ICommonVariableModel<typeof VariableTypeEn
   value?: string[];
 };
 
-export type IFunctionVariableModel = ICommonVariableModel<typeof VariableTypeEnum.FUNCTIONS> & {
-  defaultValue?: any;
-  value?: any;
-};
+export type IFunctionVariableModel = {
+  defaultValue?: AggFunction[];
+  /** 表达式使用 */
+  isUseExpression?: boolean;
+  value?: AggFunction[];
+} & ICommonVariableModel<typeof VariableTypeEnum.FUNCTIONS>;
 
 export type IMethodVariableModel = ICommonVariableModel<typeof VariableTypeEnum.METHOD> & {
   defaultValue?: string;
   value?: string;
 };
 
-export type IVariableData = Required<IVariableModel & { variableName: string }>;
+export type IVariableData = IVariableModel & { variableName: string };
 
 export interface IVariableFormEvents {
   onAliasChange: (val: string) => void;
